@@ -1,0 +1,48 @@
+
+# 服务器配置
+server:
+  http_host: ":9090"
+  # 是否启用 HTTPS。启用 HTTPS 后会自动打开 `https_host` 指定的端口号，并自动获取 lets encrypt 证书
+  enable_https: false
+  https_host: ":443"
+  # 用于生成 HTTPS 证书时使用的域名，所有域名必须完整解析并且公网可访问
+  https_domains: up.ipweb.io
+  # 用于注册 lets encrypt 的邮箱地址
+  https_email: admin@example.com
+
+# 节点配置
+node_conf:
+  nodes_refresh_interval_in_minute: 1
+  node_request_timeout_in_second: 300
+  block_upload_workers: 8
+  contract_conf:
+    client_key_hex: B2FE66D78810869A64CAAE7B1F2C60CCA3AC2F2261DA2F1DE7040DE3F1FEDA9C
+    contract_node_addr: https://mainnet.ipweb.top
+
+# Redis
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+
+# 外部依赖
+external:
+  ffmpeg: "docker run --rm -t -v $PWD:$PWD -w $PWD jrottenberg/ffmpeg:4.1-ubuntu"
+  ffprobe: "docker run --rm -t -v $PWD:$PWD -w $PWD --entrypoint ffprobe jrottenberg/ffmpeg:4.1-ubuntu"
+
+# 第三方应用
+# 每个第三方应用都会有一个单独的 AK 和 SK，用于授权使用 SDK 中的资源
+clients:
+  # IPWEB 网站
+  - access_key: lfyMRgbefeeFPxbwAgFJyKaNXLQtURnv
+    secret_key: eZZuoTFPkMOebV0mlQxzrjsuUBqHcoV8WjNV2ejXgtN72myc
+    description: IPWEB.IO
+
+  # 云盘
+  - access_key: XS9RXcvY4HY9p3gwyZardQcR7il0d8HN
+    secret_key: b64iqKC3Cd7WsTAeqW3gozku9e4V561u8GBAWU1QULb2oHHr
+    description: IPWEB Cloud Disk"
+
+  # 暂未使用
+  - access_key: YT2dSPZhS8P0atX6FRdpBsOZdhoj6qOH
+    secret_key: M15i10SC0PcDJcy7W1H6lNTM80praI7CQnG3saDYfaGO17dO
