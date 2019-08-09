@@ -29,6 +29,8 @@ func main() {
 	// 设置日志实例
 	utils.SetLogger(app.Logger())
 
+	conf := config.GetConfig()
+
 	// 初始化 RPC 客户端
 	rpcClient, err := utils.GetClientInstance()
 	if err != nil {
@@ -67,9 +69,12 @@ func main() {
 		_ = app.Shutdown(ctx)
 	})
 
-	_ = app.Run(iris.Addr(config.GetConfig().Server.HttpHost), iris.WithoutInterruptHandler)
+	if conf.Server.EnableHttps {
+		_ = app.Run(iris.AutoTLS(conf.Server.HttpsHost, conf.Server.HttpsDomains, conf.Server.HttpsEmail))
 
-	// app.Run(iris.AutoTLS(":443", "example.com", "admin@example.com")) 可以自动配置 Lets Encrypt 证书
+	} else {
+		_ = app.Run(iris.Addr(config.GetConfig().Server.HttpHost), iris.WithoutInterruptHandler)
+	}
 }
 
 // 构建路由
