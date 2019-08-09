@@ -2,22 +2,24 @@ package putPolicy
 
 import (
 	"fmt"
+	"github.com/ipweb-group/file-server/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 /**
  * 测试编码生成上传 Token
  */
 func TestEncodePutPolicy(t *testing.T) {
-	appClient := AppClient{
+	appClient := config.AppClient{
 		AccessKey: "lfyMRgbefeeFPxbwAgFJyKaNXLQtURnv",
 		SecretKey: "eZZuoTFPkMOebV0mlQxzrjsuUBqHcoV8WjNV2ejXgtN72myc",
 	}
 
 	// 1. Put policy content
 	policy := PutPolicy{
-		Deadline: 1563295798,
+		Deadline: int32(time.Now().Unix()) + 7200,
 		//CallbackUrl:         "http://ipweb.io/app/file/upload-callback",
 		//CallbackUrl:         "http://localhost:8081/",
 		//CallbackBody:        "name=$(fname)&size=$(fsize)&hash=$(hash)&width=$(width)&height=$(height)&duration=$(duration)",
@@ -25,7 +27,7 @@ func TestEncodePutPolicy(t *testing.T) {
 		//PersistentOps:       "convertVideo,videoThumb",
 		//ReturnBody:          `{"name": "$(fname)", "size": $(fsize), "hash": "$(hash)"}`,
 		//ReturnUrl:           "http://localhost:8081",
-		ClientKey: "22ad47ccff00d3e672d8b4f3d7b2ff695805d4dce1f4a8f5d02780304f1a4862",
+		//ClientKey: "22ad47ccff00d3e672d8b4f3d7b2ff695805d4dce1f4a8f5d02780304f1a4862",
 	}
 
 	result := policy.Make(appClient)

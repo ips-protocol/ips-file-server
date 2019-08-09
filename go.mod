@@ -9,6 +9,7 @@ require (
 	github.com/ipweb-group/go-sdk v0.9.0
 	github.com/kataras/golog v0.0.0-20190624001437-99c81de45f40
 	github.com/kataras/iris v11.1.1+incompatible
+	github.com/stretchr/testify v1.3.0
 	gopkg.in/yaml.v2 v2.2.2
 )
 

@@ -9,8 +9,8 @@ import (
 
 // 第三方应用密钥对象
 type AppClient struct {
-	AccessKey   string `json:"access_key"`
-	SecretKey   string `json:"secret_key"`
+	AccessKey   string `json:"access_key" yaml:"access_key"`
+	SecretKey   string `json:"secret_key" yaml:"secret_key"`
 	Description string `json:"description,omitempty"`
 }
 
