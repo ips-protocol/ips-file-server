@@ -23,7 +23,12 @@ node_conf:
 redis:
   addr: "localhost:6379"
   password: ""
-  db: 0
+  db: 1
+
+# mongo
+mongo:
+  connection_uri: mongodb://127.0.0.1:27017
+  db: ipweb-storage
 
 # 外部依赖
 external:

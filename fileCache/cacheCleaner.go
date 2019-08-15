@@ -1,7 +1,7 @@
 package fileCache
 
 import (
-	"github.com/ipweb-group/file-server/db/redis"
+	"github.com/ipweb-group/file-server/db/redisdb"
 	"github.com/ipweb-group/file-server/utils"
 	"os"
 	"path/filepath"
@@ -40,7 +40,7 @@ func ReduceCaches(reduceToFitSize int64) int {
 		}
 
 		// 每次获取 5 个最旧的文件，并将其删除
-		fileHashes, err := redis.GetClient().ZRange(FileCacheSetKey, 0, 5).Result()
+		fileHashes, err := redisdb.GetClient().ZRange(FileCacheSetKey, 0, 5).Result()
 		if err != nil {
 			return filesHaveBeenRemoved
 		}

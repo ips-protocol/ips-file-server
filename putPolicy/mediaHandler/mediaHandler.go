@@ -2,9 +2,6 @@ package mediaHandler
 
 import (
 	"github.com/ipweb-group/file-server/utils"
-	"io"
-	"mime/multipart"
-	"os"
 	"regexp"
 )
 
@@ -13,14 +10,9 @@ type MediaInfo struct {
 	Height   int    `json:"height"`
 	Duration string `json:"duration"` // 时长是个浮点数，这里直接用字符串保存
 	Type     string `json:"type"`     // 类型。针对图片可能是 jpeg/png/gif；针对视频可能是 h264 等
-	MimeType string `json:"mime_type"`
 }
 
-func DetectMediaInfo(filePath string, mimeType string) (info MediaInfo, err error) {
-	info = MediaInfo{
-		MimeType: mimeType,
-	}
-
+func DetectMediaInfo(filePath string, mimeType string) (info MediaInfo, needCovert bool, err error) {
 	lg := utils.GetLogger()
 
 	// 如果文件是支持的图片类型，就调用图片处理器获取图片尺寸信息
@@ -39,27 +31,9 @@ func DetectMediaInfo(filePath string, mimeType string) (info MediaInfo, err erro
 		if err != nil {
 			return
 		}
+
+		needCovert = true
 	}
 
-	return
-}
-
-// 写入上传文件到临时文件，并返回临时文件的绝对路径
-func WriteTmpFile(file multipart.File, cid string, ext string) (path string, err error) {
-	tmpDir := utils.GetTmpDir()
-	path = tmpDir + "/" + cid + ext
-
-	_, err = file.Seek(0, 0)
-	if err != nil {
-		return
-	}
-
-	dst, err := os.Create(path)
-	if err != nil {
-		return
-	}
-	defer dst.Close()
-
-	_, err = io.Copy(dst, file)
 	return
 }

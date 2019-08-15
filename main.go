@@ -2,25 +2,27 @@ package main
 
 import (
 	"context"
+	"github.com/ipweb-group/file-server/backgroundWorker"
 	"github.com/ipweb-group/file-server/config"
 	"github.com/ipweb-group/file-server/controllers"
-	"github.com/ipweb-group/file-server/db/redis"
-	"github.com/ipweb-group/file-server/putPolicy/persistent"
+	"github.com/ipweb-group/file-server/db/mongodb"
+	"github.com/ipweb-group/file-server/db/redisdb"
 	"github.com/ipweb-group/file-server/utils"
 	"github.com/kataras/iris"
 	irisContext "github.com/kataras/iris/context"
 	"time"
 )
 
-// 最大允许上传的文件大小：500MB
-const MaxFileSize int64 = 500 << 20
-
 func init() {
 	// 初始化临时目录
 	utils.InitTmpDir()
 
 	// 加载配置文件
-	config.LoadConfig("./config.yml")
+	conf := config.LoadConfig("./config.yml")
+
+	// 连接数据库
+	mongodb.Connect(conf.Mongo)
+	redisdb.Connect()
 }
 
 func main() {
@@ -38,7 +40,10 @@ func main() {
 	}
 
 	// 启动转换器线程
-	go persistent.ConvertMediaJob()
+	//go persistent.ConvertMediaJob()
+
+	// 启动后台 Worker
+	go backgroundWorker.StartWorker()
 
 	// 404 错误输出
 	app.OnErrorCode(iris.StatusNotFound, func(ctx irisContext.Context) {
@@ -55,15 +60,18 @@ func main() {
 		defer cancel()
 
 		// 关闭 RPC 客户端
-		err := rpcClient.Close()
-		if err != nil {
+		if err := rpcClient.Close(); err != nil {
 			utils.GetLogger().Warnf("Close RPC Client failed, %v", err)
 		}
 
 		// 关闭 Redis 连接
-		err = redis.GetClient().Close()
-		if err != nil {
+		if err := redisdb.Close(); err != nil {
 			utils.GetLogger().Warnf("Close redis connection failed, %v", err)
+		}
+
+		// 关闭 Mongo 连接
+		if err := mongodb.Close(); err != nil {
+			utils.GetLogger().Warn("Close mongodb connection failed, ", err.Error())
 		}
 
 		_ = app.Shutdown(ctx)
@@ -83,7 +91,7 @@ func routers(app *iris.Application) {
 	v1 := app.Party("/v1")
 	{
 		uploadController := controllers.UploadController{}
-		v1.Post("/upload", iris.LimitRequestBodySize(MaxFileSize), uploadController.Upload)
+		v1.Post("/upload", uploadController.Upload)
 
 		downloadController := controllers.DownloadController{}
 		v1.Get("/file/{cid:string}", downloadController.StreamedDownload)

@@ -3,7 +3,7 @@ package fileCache
 import (
 	"encoding/json"
 	_redis "github.com/go-redis/redis"
-	"github.com/ipweb-group/file-server/db/redis"
+	"github.com/ipweb-group/file-server/db/redisdb"
 	"github.com/ipweb-group/file-server/utils"
 	"io"
 	"mime"
@@ -35,7 +35,7 @@ func GetCacheFilePath(cid string) string {
 // 缓存是否存在并可用
 // 仅在缓存同时存在于 Redis 和缓存目录时，才认为其可用
 func IsCacheAvailable(cid string) bool {
-	exist, _ := redis.GetClient().Exists(FileKeyPrefix + cid).Result()
+	exist, _ := redisdb.GetClient().Exists(FileKeyPrefix + cid).Result()
 	if exist == int64(0) {
 		return false
 	}
@@ -63,7 +63,7 @@ func GetCachedFile(cid string) (file *os.File, fileInfo CachedFile, err error) {
 	lg := utils.GetLogger()
 
 	// 读取 Redis 中的文件信息
-	redisClient := redis.GetClient()
+	redisClient := redisdb.GetClient()
 	_info, err := redisClient.Get(FileKeyPrefix + cid).Bytes()
 	if err == _redis.Nil || err != nil {
 		lg.Warn("File key not exists, will remove cache file to keep sync")
@@ -89,7 +89,7 @@ func GetCachedFile(cid string) (file *os.File, fileInfo CachedFile, err error) {
 func AddCachedFileToRedis(cid string, c CachedFile) {
 	str, _ := json.Marshal(c)
 
-	redisClient := redis.GetClient()
+	redisClient := redisdb.GetClient()
 	redisClient.Set(FileKeyPrefix+cid, str, 0)
 
 	// 添加文件到 ZSET 列表
@@ -102,7 +102,7 @@ func AddCachedFileToRedis(cid string, c CachedFile) {
 
 // 更新文件在缓存中的最后访问时间（该时间用于清理缓存）
 func UpdateFileAccessTimeToNow(cid string) {
-	redis.GetClient().ZAdd(FileCacheSetKey, _redis.Z{
+	redisdb.GetClient().ZAdd(FileCacheSetKey, _redis.Z{
 		Score:  float64(time.Now().Unix()),
 		Member: cid,
 	})
@@ -110,7 +110,7 @@ func UpdateFileAccessTimeToNow(cid string) {
 
 // 删除缓存文件，并删除 Redis 中对应的记录
 func RemoveCachedFileAndRedisKey(cid string) {
-	redisClient := redis.GetClient()
+	redisClient := redisdb.GetClient()
 	redisClient.Del(FileKeyPrefix + cid)
 	redisClient.ZRem(FileCacheSetKey, cid)
 

@@ -7,16 +7,16 @@ import (
 )
 
 type PutPolicy struct {
-	Deadline            int32  `json:"deadline"`
-	ReturnUrl           string `json:"returnUrl,omitempty"`
-	ReturnBody          string `json:"returnBody,omitempty"`
-	EndUser             string `json:"endUser,omitempty"`
-	ClientKey           string `json:"clientKey,omitempty"`
-	CallbackUrl         string `json:"callbackUrl,omitempty"`
-	CallbackBody        string `json:"callbackBody,omitempty"`
-	FSizeLimit          int32  `json:"fSizeLimit,omitempty"`
-	PersistentOps       string `json:"persistentOps,omitempty"`
-	PersistentNotifyUrl string `json:"persistentNotifyUrl,omitempty"`
+	Deadline            int32  `json:"deadline" bson:"deadline"`
+	ReturnUrl           string `json:"returnUrl,omitempty" bson:"returnUrl,omitempty"`
+	ReturnBody          string `json:"returnBody,omitempty" bson:"returnBody,omitempty"`
+	EndUser             string `json:"endUser,omitempty" bson:"endUser,omitempty"`
+	ClientKey           string `json:"clientKey,omitempty" bson:"clientKey,omitempty"`
+	CallbackUrl         string `json:"callbackUrl,omitempty" bson:"callbackUrl,omitempty"`
+	CallbackBody        string `json:"callbackBody,omitempty" bson:"callbackBody,omitempty"`
+	FSizeLimit          int32  `json:"fSizeLimit,omitempty" bson:"fSizeLimit,omitempty"`
+	PersistentOps       string `json:"persistentOps,omitempty" bson:"persistentOps,omitempty"`
+	PersistentNotifyUrl string `json:"persistentNotifyUrl,omitempty" bson:"persistentNotifyUrl,omitempty"`
 }
 
 //
