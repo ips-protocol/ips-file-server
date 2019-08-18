@@ -1,13 +1,14 @@
 package controllers
 
 import (
-	"fmt"
-	"github.com/ipweb-group/file-server/fileCache"
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/ipweb-group/file-server/backgroundWorker"
+	"github.com/ipweb-group/file-server/externals/ossClient"
 	"github.com/kataras/iris"
 	"io"
-	"os"
+	"net/http"
 	"regexp"
-	"strconv"
+	"strings"
 )
 
 type DownloadController struct{}
@@ -21,65 +22,67 @@ func (d *DownloadController) StreamedDownload(ctx iris.Context) {
 		return
 	}
 
-	// 标识文件是否是从 IPFS 中下载。如果文件是来自缓存而非下载自 IPFS，将会在
-	// 请求结束后在后台自动下载该文件以达到计数的目的
-	isFileDownloadedFromIPFS := false
+	lg.Info("New download request")
 
-	// 检查文件是否存在于缓存中，如果不存在，则将其下载到缓存，并写到 Redis
-	if !fileCache.IsCacheAvailable(cid) {
-		lg.Info("File cache not available, start downloading")
-		// 尝试删除可能存在的缓存文件
-		fileCache.RemoveCachedFileAndRedisKey(cid)
+	// 检查请求中是否包含 Range 头，如果包含，则将 Range 的字节部分解析出来
+	rangeHeader := getRangeHeader(ctx)
 
-		// 从 IPFS 中下载文件
-		err := fileCache.DownloadFileToCache(cid)
-		if err != nil {
-			throwError(iris.StatusInternalServerError, err.Error(), ctx)
-			return
-		}
+	// 检查文件是否存在于 OSS 中，如果不存在则直接抛出 404 错误
+	ossBucket := ossClient.GetBucket()
+	filenameInOSS := "files/" + cid
+	var objectMeta http.Header
+	var err error
 
-		isFileDownloadedFromIPFS = true
+	if rangeHeader == "" {
+		objectMeta, err = ossBucket.GetObjectDetailedMeta(filenameInOSS)
+	} else {
+		objectMeta, err = ossBucket.GetObjectDetailedMeta(filenameInOSS, oss.NormalizedRange(rangeHeader))
 	}
 
-	file, fileInfo, err := fileCache.GetCachedFile(cid)
 	if err != nil {
-		lg.Warnf("Open cache file failed, %s, %v", cid, err)
-		throwError(iris.StatusInternalServerError, "Open file failed", ctx)
+		throwError(iris.StatusNotFound, "File not found", ctx)
 		return
 	}
-	defer file.Close()
 
-	lg.Info("Read file from cache, ", cid)
+	if rangeHeader != "" {
+		ctx.StatusCode(iris.StatusPartialContent)
+		ctx.Header("Accept-Ranges", "bytes")
+		ctx.Header("Content-Transfer-Encoding", "binary")
+		ctx.Header("Content-Range", objectMeta.Get("Content-Range"))
+	}
 
-	// 更新文件在缓存中的最后访问时间（该时间用于清理缓存）
+	ctx.Header("Content-Type", objectMeta.Get("Content-Type"))
+	ctx.Header("Content-Length", objectMeta.Get("Content-Length"))
+	ctx.Header("Date", objectMeta.Get("Date"))
+	ctx.Header("Etag", objectMeta.Get("Etag"))
+
+	lg.Info("Download file from OSS")
+
+	// 从 OSS 上下载指定的文件
+	var body io.ReadCloser
+	if rangeHeader == "" {
+		body, err = ossBucket.GetObject(filenameInOSS)
+	} else {
+		body, err = ossBucket.GetObject(filenameInOSS, oss.NormalizedRange(rangeHeader))
+	}
+
+	if err != nil {
+		lg.Error("Get file from OSS failed, ", err)
+		throwError(iris.StatusInternalServerError, "Get file failed, "+err.Error(), ctx)
+		return
+	}
+	defer body.Close()
+
+	// 添加后台下载任务。Range 请求时，仅从 0 开始的请求需要后台下载
 	defer func() {
-		go fileCache.UpdateFileAccessTimeToNow(cid)
+		if rangeHeader == "" || strings.HasPrefix(rangeHeader, "0-") {
+			downloadTask := backgroundWorker.DownloadTask{Hash: cid}
+			downloadTask.Enqueue()
+			lg.Info("Added background download task to queue")
+		}
 	}()
 
-	// 处理 Range 请求
-	rangeHeader := ctx.Request().Header.Get("Range")
-	if rangeHeader != "" {
-		if match, _ := regexp.MatchString("(?i)bytes=(\\d*)-(\\d*)", rangeHeader); match {
-			isRangeStart := handleRangeRequest(ctx, file, fileInfo, rangeHeader)
-			// Range 请求为起点时，在后台下载 IPFS 文件
-			if isRangeStart {
-				go fileCache.BackgroundDownload(cid)
-			}
-			return
-		}
-	}
-
-	// 文件并非请求自 IPFS 时，启动后台下载
-	if !isFileDownloadedFromIPFS {
-		defer func() {
-			go fileCache.BackgroundDownload(cid)
-		}()
-	}
-
-	// 非 Range 请求时，返回文件内容
-	ctx.Header("Content-Type", fileInfo.MimeType)
-
-	_, err = io.Copy(ctx.ResponseWriter(), file)
+	_, err = io.Copy(ctx.ResponseWriter(), body)
 	if err != nil {
 		lg.Errorf("Copy file stream to context failed, %v", err)
 		throwError(iris.StatusInternalServerError, "Send file content failed", ctx)
@@ -87,70 +90,22 @@ func (d *DownloadController) StreamedDownload(ctx iris.Context) {
 	}
 }
 
-// 处理 Range 请求，并完成响应。
-// 返回此次请求是否一个新的 Range 起点请求的标识（新的起点请求需要后台下载 IPFS 文件）
-func handleRangeRequest(ctx iris.Context, file *os.File, fileInfo fileCache.CachedFile, rangeHeader string) (isRangeStart bool) {
-	lg := ctx.Application().Logger()
-	isRangeStart = false
+// 获取请求中的 Range 字节部分
+func getRangeHeader(ctx iris.Context) string {
+	rangeHeader := ctx.Request().Header.Get("Range")
+	if rangeHeader == "" {
+		return ""
+	}
 
-	lg.Info("Range request detected, will provide range response for ", rangeHeader)
-
-	reg, err := regexp.Compile("(?i)bytes=(\\d*)-(\\d*)")
+	reg, err := regexp.Compile("(?i)bytes=(.*)")
 	if err != nil {
-		lg.Error(err)
-		return
+		return ""
 	}
 
 	matches := reg.FindStringSubmatch(rangeHeader)
 	if matches == nil {
-		throwError(iris.StatusUnprocessableEntity, "Invalid ranger header", ctx)
-		return
+		return ""
 	}
 
-	var start, end int64
-
-	// 处理 range 为不同值时截取的起点和终点情况。暂不支持多个 range 的截取
-	if matches[1] != "" {
-		start, _ = strconv.ParseInt(matches[1], 10, 64)
-	}
-	if matches[2] != "" {
-		end, _ = strconv.ParseInt(matches[2], 10, 64)
-	}
-	if matches[1] != "" && matches[2] == "" {
-		end = fileInfo.Size - 1
-	}
-	if matches[1] == "" && matches[2] != "" {
-		start = fileInfo.Size - end - 1
-		end = fileInfo.Size - 1
-	}
-
-	if start > fileInfo.Size {
-		throwError(iris.StatusRequestedRangeNotSatisfiable, "Range Not Satisfiable", ctx)
-		return
-	}
-
-	if end >= fileInfo.Size {
-		end = fileInfo.Size - 1
-	}
-
-	isRangeStart = start == 0
-
-	// 返回指定的文件内容
-	length := end - start + 1
-	bytes := make([]byte, length)
-
-	_, err = file.ReadAt(bytes, start)
-	if err != nil {
-		lg.Error(err)
-	}
-
-	ctx.StatusCode(iris.StatusPartialContent)
-	ctx.Header("Content-Type", fileInfo.MimeType)
-	ctx.Header("Content-Length", strconv.FormatInt(length, 10))
-	ctx.Header("Accept-Ranges", "bytes")
-	ctx.Header("Content-Transfer-Encoding", "binary")
-	ctx.Header("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileInfo.Size))
-
-	_, _ = ctx.Write(bytes)
-	return
+	return matches[1]
 }

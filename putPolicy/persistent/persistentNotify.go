@@ -1,12 +1,8 @@
 package persistent
 
 import (
-	"github.com/ipweb-group/file-server/fileCache"
 	"github.com/ipweb-group/file-server/utils"
-	"mime"
 	"os"
-	"path"
-	"path/filepath"
 )
 
 type NotifyRequestBody struct {
@@ -39,22 +35,22 @@ func (r *Result) UploadConvertedFile(task *Task) (dstCid string, err error) {
 
 	} else {
 		defer closeFile(file)
-		dstFileInfo, _ := file.Stat()
+		//dstFileInfo, _ := file.Stat()
 
 		// 根据是否有密钥选择对应的上传方式
-		rpcClient, _ := utils.GetClientInstance()
-		if task.ClientKey != "" {
-			dstCid, err = rpcClient.UploadByClientKey(task.ClientKey, file, dstFileInfo.Name(), dstFileInfo.Size())
-		} else {
-			dstCid, err = rpcClient.Upload(file, dstFileInfo.Name(), dstFileInfo.Size())
-		}
+		//rpcClient, _ := utils.GetClientInstance()
+		//if task.ClientKey != "" {
+		//	dstCid, err = rpcClient.UploadByClientKey(task.ClientKey, file, dstFileInfo.Name(), dstFileInfo.Size())
+		//} else {
+		//	dstCid, err = rpcClient.Upload(file, dstFileInfo.Name(), dstFileInfo.Size())
+		//}
 
-		if err != nil {
-			lg.Errorf("Upload converted file failed, [%v]", err)
-
-		} else {
-			lg.Infof("Upload converted file completed, cid is %s", dstCid)
-		}
+		//if err != nil {
+		//	lg.Errorf("Upload converted file failed, [%v]", err)
+		//
+		//} else {
+		//	lg.Infof("Upload converted file completed, cid is %s", dstCid)
+		//}
 	}
 
 	return
@@ -62,25 +58,25 @@ func (r *Result) UploadConvertedFile(task *Task) (dstCid string, err error) {
 
 // 添加转换完成后的文件到缓存中
 func AddResultFileToCache(cid string, filePath string) {
-	fi, err := os.Stat(filePath)
-	if err != nil {
-		return
-	}
+	//fi, err := os.Stat(filePath)
+	//if err != nil {
+	//	return
+	//}
 
-	c := fileCache.CachedFile{
-		Hash:     cid,
-		Name:     fi.Name(),
-		Size:     fi.Size(),
-		MimeType: mime.TypeByExtension(filepath.Ext(fi.Name())),
-	}
+	//c := fileCache.CachedFile{
+	//	Hash:     cid,
+	//	Name:     fi.Name(),
+	//	Size:     fi.Size(),
+	//	MimeType: mime.TypeByExtension(filepath.Ext(fi.Name())),
+	//}
 
-	err = os.Rename(filePath, path.Join(utils.GetCacheDir(), cid))
-	if err != nil {
-		return
-	}
+	//err = os.Rename(filePath, path.Join(utils.GetCacheDir(), cid))
+	//if err != nil {
+	//	return
+	//}
 
-	fileCache.AddCachedFileToRedis(cid, c)
-	utils.GetLogger().Infof("Add processed file %s to cache", cid)
+	//fileCache.AddCachedFileToRedis(cid, c)
+	//utils.GetLogger().Infof("Add processed file %s to cache", cid)
 }
 
 // 添加转换完成后的文件到缓存中

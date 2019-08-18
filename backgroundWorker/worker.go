@@ -33,7 +33,12 @@ func jobDetector(flag chan bool) {
 		return
 	}
 
-	// TODO 检查是否有下载任务
+	// 检查是否有下载任务
+	_downloadTask, err := DequeueDownloadTask()
+	if err == nil {
+		_downloadTask.Download(flag)
+		return
+	}
 
 	flag <- false
 }
