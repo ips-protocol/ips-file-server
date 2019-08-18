@@ -1,7 +1,7 @@
 package fileCache
 
 import (
-	"github.com/ipweb-group/file-server/db/redisdb"
+	"github.com/ipweb-group/file-server/externals/redisdb"
 	"github.com/ipweb-group/file-server/utils"
 	"os"
 	"path/filepath"

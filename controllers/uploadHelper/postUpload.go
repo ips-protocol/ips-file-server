@@ -1,7 +1,7 @@
 package uploadHelper
 
 import (
-	"github.com/ipweb-group/file-server/db/mongodb"
+	"github.com/ipweb-group/file-server/externals/mongodb"
 	"github.com/ipweb-group/file-server/putPolicy"
 	"github.com/ipweb-group/file-server/utils"
 	"github.com/kataras/iris"

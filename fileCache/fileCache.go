@@ -3,7 +3,7 @@ package fileCache
 import (
 	"encoding/json"
 	_redis "github.com/go-redis/redis"
-	"github.com/ipweb-group/file-server/db/redisdb"
+	"github.com/ipweb-group/file-server/externals/redisdb"
 	"github.com/ipweb-group/file-server/utils"
 	"io"
 	"mime"

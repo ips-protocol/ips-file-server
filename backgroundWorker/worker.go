@@ -16,6 +16,8 @@ func StartWorker() {
 	blockFlag := make(chan bool)
 
 	for {
+		time.Sleep(2 * time.Second)
+
 		go jobDetector(blockFlag)
 
 		<-blockFlag
@@ -24,13 +26,14 @@ func StartWorker() {
 
 func jobDetector(flag chan bool) {
 
-	hasJob := false
-	if !hasJob {
-		time.Sleep(2 * time.Second)
-		flag <- true
+	// 检查是否有上传任务
+	_uploadTask, err := DequeueUploadTask()
+	if err == nil {
+		_uploadTask.Upload(flag)
 		return
 	}
 
-	// 有任务 时执行任务
-	return
+	// TODO 检查是否有下载任务
+
+	flag <- false
 }

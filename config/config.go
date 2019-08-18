@@ -12,6 +12,7 @@ type Config struct {
 	NodeConf conf.Config    `yaml:"node_conf"`
 	Redis    RedisConfig    `yaml:"redis"`
 	Mongo    MongoConfig    `yaml:"mongo"`
+	OSS      OssConfig      `yaml:"OSS"`
 	External ExternalConfig `yaml:"external"`
 	Clients  []AppClient    `yaml:"clients"`
 }

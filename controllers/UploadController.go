@@ -3,7 +3,7 @@ package controllers
 import (
 	"github.com/ipweb-group/file-server/backgroundWorker"
 	"github.com/ipweb-group/file-server/controllers/uploadHelper"
-	"github.com/ipweb-group/file-server/db/mongodb"
+	"github.com/ipweb-group/file-server/externals/mongodb"
 	"github.com/ipweb-group/file-server/putPolicy"
 	"github.com/ipweb-group/file-server/putPolicy/mediaHandler"
 	"github.com/kataras/iris"
@@ -69,6 +69,9 @@ func (s *UploadController) Upload(ctx iris.Context) {
 	uploadTask := backgroundWorker.UploadTask{
 		Hash:          fileObj.Id,
 		CacheFilePath: tmpFilePath,
+		Filename:      fileObj.OriginalFilename,
+		FileSize:      fileObj.FileSize,
+		ClientKey:     policy.ClientKey,
 	}
 
 	// 2. 检查数据库中是否存在相同 hash 的记录

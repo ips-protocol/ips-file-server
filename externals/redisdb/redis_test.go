@@ -2,9 +2,12 @@ package redisdb
 
 import (
 	"fmt"
+	"github.com/go-redis/redis"
 	"github.com/ipweb-group/file-server/config"
 	"github.com/stretchr/testify/assert"
+	"strconv"
 	"testing"
+	"time"
 )
 
 func init() {
@@ -27,4 +30,17 @@ func TestExist(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, ret, int64(0))
+}
+
+func TestZRangeByScore(t *testing.T) {
+	client := GetClient()
+	ret, err := client.ZRangeByScore("IPWEB:FS:QUEUE:UP", redis.ZRangeBy{
+		Max:    "+Inf",
+		Min:    strconv.FormatInt(time.Now().Unix(), 10),
+		Offset: 0,
+		Count:  1,
+	}).Result()
+
+	fmt.Println(err)
+	fmt.Println(ret)
 }

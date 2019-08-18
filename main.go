@@ -5,8 +5,9 @@ import (
 	"github.com/ipweb-group/file-server/backgroundWorker"
 	"github.com/ipweb-group/file-server/config"
 	"github.com/ipweb-group/file-server/controllers"
-	"github.com/ipweb-group/file-server/db/mongodb"
-	"github.com/ipweb-group/file-server/db/redisdb"
+	"github.com/ipweb-group/file-server/externals/mongodb"
+	"github.com/ipweb-group/file-server/externals/ossClient"
+	"github.com/ipweb-group/file-server/externals/redisdb"
 	"github.com/ipweb-group/file-server/utils"
 	"github.com/kataras/iris"
 	irisContext "github.com/kataras/iris/context"
@@ -23,6 +24,9 @@ func init() {
 	// 连接数据库
 	mongodb.Connect(conf.Mongo)
 	redisdb.Connect()
+
+	// 创建 OSS 客户端
+	ossClient.GetBucket()
 }
 
 func main() {
