@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	OSS  = "OSS"
+	CDN  = "CDN"
 	IPFS = "IPFS"
 )
 
@@ -93,7 +93,7 @@ func (ut *UploadTask) UploadToOSS() (err error) {
 }
 
 // 添加任务到队列
-// target 为 OSS 或 IPFS
+// target 为 CDN 或 IPFS
 func (ut *UploadTask) Enqueue(target string) {
 	redisClient := redisdb.GetClient()
 	// 添加任务
@@ -111,7 +111,7 @@ func (utwt *UploadTaskWithTarget) Upload(completed chan bool) {
 	lg := utils.GetLogger()
 	lg.Info("Begin upload to ", utwt.Target)
 
-	if utwt.Target == OSS {
+	if utwt.Target == CDN {
 		err = utwt.UploadTask.UploadToOSS()
 	}
 
@@ -145,7 +145,7 @@ func (utwt *UploadTaskWithTarget) Upload(completed chan bool) {
 func (utwt *UploadTaskWithTarget) HasAnotherTask() bool {
 	redisClient := redisdb.GetClient()
 	hasAnotherTask := false
-	for _, target := range []string{OSS, IPFS} {
+	for _, target := range []string{CDN, IPFS} {
 		member := utwt.UploadTask.GetMemberName(target)
 		score, err := redisClient.ZScore(GetUploadQueueCacheKey(), member).Result()
 		if err == nil && score > 0 {

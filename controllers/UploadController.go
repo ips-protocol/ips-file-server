@@ -87,7 +87,7 @@ func (s *UploadController) Upload(ctx iris.Context) {
 	}
 
 	// 3. 添加上传任务到队列
-	uploadTask.Enqueue(backgroundWorker.OSS)
+	uploadTask.Enqueue(backgroundWorker.CDN)
 	uploadTask.Enqueue(backgroundWorker.IPFS)
 
 	// 4. 检查文件类型及媒体信息

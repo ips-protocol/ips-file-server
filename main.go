@@ -43,9 +43,6 @@ func main() {
 		panic(err)
 	}
 
-	// 启动转换器线程
-	//go persistent.ConvertMediaJob()
-
 	// 启动后台 Worker
 	go backgroundWorker.StartWorker()
 
