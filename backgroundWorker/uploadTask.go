@@ -104,8 +104,13 @@ func (ut *UploadTask) Enqueue(target string) {
 	// 添加任务
 	redisClient.Set(GetUploadTaskCacheKey(ut.Hash), ut.ToJSON(), 0)
 	// 添加任务到队列
-	redisClient.ZAdd(GetUploadQueueCacheKey(), redis.Z{
-		Score:  float64(time.Now().Unix()),
+	ut.addToZSet(target, time.Now().Unix())
+}
+
+// 添加任务到 ZSET
+func (ut *UploadTask) addToZSet(target string, score int64) {
+	redisdb.GetClient().ZAdd(GetUploadQueueCacheKey(), redis.Z{
+		Score:  float64(score),
 		Member: ut.GetMemberName(target),
 	})
 }
@@ -129,8 +134,8 @@ func (utwt *UploadTaskWithTarget) Upload(completed chan bool) {
 
 		// 出错后，重试次数加一
 		utwt.UploadTask.RetryTimes++
-		// TODO 重新保存回 Redis
-
+		// 重试时间加一分钟，并重新保存回 Redis
+		utwt.UploadTask.addToZSet(utwt.Target, time.Now().Unix()+60)
 	}
 
 	// 上传完成后，检查 Queue 中是否存在相同 hash 的不同类型的任务，如果没有别的任务，

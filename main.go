@@ -96,5 +96,8 @@ func routers(app *iris.Application) {
 
 		downloadController := controllers.DownloadController{}
 		v1.Get("/file/{cid:string}", downloadController.StreamedDownload)
+		v1.Get("/file/{cid:string}/{operation:string}", downloadController.StreamedDownload)
+
+		v1.Post("/mts/subscriber", controllers.MTSController{}.Subscriber)
 	}
 }

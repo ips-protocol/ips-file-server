@@ -13,30 +13,46 @@ import (
 
 type DownloadController struct{}
 
+var operationMap = map[string]string{
+	"playable": "playable.mp4",
+	"snapshot": "snapshot.jpg",
+}
+
 func (d *DownloadController) StreamedDownload(ctx iris.Context) {
 	lg := ctx.Application().Logger()
 
 	cid := ctx.Params().Get("cid")
+	operation := ctx.Params().Get("operation")
 	if cid == "" {
 		throwError(iris.StatusUnprocessableEntity, "Invalid file hash", ctx)
 		return
 	}
 
-	lg.Info("New download request")
+	lg.Infof("New download request, cid is %s, operation is %s", cid, operation)
+
+	var originalOssFilePath = "files/" + cid
+	var targetOssFilePath string
+
+	// 解析 Operation 内容
+	_operationFileName := operationMap[operation]
+	if _operationFileName == "" {
+		targetOssFilePath = originalOssFilePath
+	} else {
+		targetOssFilePath = "converted/" + cid + "/" + _operationFileName
+	}
 
 	// 检查请求中是否包含 Range 头，如果包含，则将 Range 的字节部分解析出来
 	rangeHeader := getRangeHeader(ctx)
 
 	// 检查文件是否存在于 OSS 中，如果不存在则直接抛出 404 错误
 	ossBucket := ossClient.GetBucket()
-	filenameInOSS := "files/" + cid
 	var objectMeta http.Header
 	var err error
 
 	if rangeHeader == "" {
-		objectMeta, err = ossBucket.GetObjectDetailedMeta(filenameInOSS)
+		objectMeta, err = ossBucket.GetObjectDetailedMeta(targetOssFilePath)
 	} else {
-		objectMeta, err = ossBucket.GetObjectDetailedMeta(filenameInOSS, oss.NormalizedRange(rangeHeader))
+		objectMeta, err = ossBucket.GetObjectDetailedMeta(targetOssFilePath, oss.NormalizedRange(rangeHeader))
 	}
 
 	if err != nil {
@@ -61,9 +77,9 @@ func (d *DownloadController) StreamedDownload(ctx iris.Context) {
 	// 从 OSS 上下载指定的文件
 	var body io.ReadCloser
 	if rangeHeader == "" {
-		body, err = ossBucket.GetObject(filenameInOSS)
+		body, err = ossBucket.GetObject(targetOssFilePath)
 	} else {
-		body, err = ossBucket.GetObject(filenameInOSS, oss.NormalizedRange(rangeHeader))
+		body, err = ossBucket.GetObject(targetOssFilePath, oss.NormalizedRange(rangeHeader))
 	}
 
 	if err != nil {
