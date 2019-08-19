@@ -11,7 +11,7 @@ var _client *oss.Client
 func GetClient() *oss.Client {
 
 	if _client == nil {
-		ossConf := config.GetConfig().OSS
+		ossConf := config.GetConfig().Aliyun
 
 		client, err := oss.New(ossConf.Endpoint, ossConf.AccessKey, ossConf.AccessSecret)
 		if err != nil {
@@ -27,6 +27,6 @@ func GetClient() *oss.Client {
 func GetBucket() *oss.Bucket {
 	client := GetClient()
 
-	bucket, _ := client.Bucket(config.GetConfig().OSS.Bucket)
+	bucket, _ := client.Bucket(config.GetConfig().Aliyun.Bucket)
 	return bucket
 }

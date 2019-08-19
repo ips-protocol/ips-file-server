@@ -4,8 +4,8 @@ go 1.12
 
 require (
 	github.com/ajg/form v1.5.1 // indirect
+	github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190819021317-d73869dfd258
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.1+incompatible
-	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/cespare/cp v1.1.1 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
@@ -20,7 +20,6 @@ require (
 	github.com/kataras/golog v0.0.0-20190624001437-99c81de45f40
 	github.com/kataras/iris v11.1.1+incompatible
 	github.com/moul/http2curl v1.0.0 // indirect
-	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/tidwall/pretty v1.0.0 // indirect
@@ -34,7 +33,6 @@ require (
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
 	go.mongodb.org/mongo-driver v1.0.4
-	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )

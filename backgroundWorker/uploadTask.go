@@ -5,9 +5,11 @@ import (
 	"errors"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/go-redis/redis"
+	"github.com/ipweb-group/file-server/externals/aliyun"
 	"github.com/ipweb-group/file-server/externals/ossClient"
 	"github.com/ipweb-group/file-server/externals/redisdb"
 	"github.com/ipweb-group/file-server/utils"
+
 	"mime"
 	"os"
 	"path"
@@ -79,15 +81,18 @@ func (ut *UploadTask) UploadToIPFS() (err error) {
 func (ut *UploadTask) UploadToOSS() (err error) {
 	mimeType := mime.TypeByExtension(path.Ext(ut.CacheFilePath))
 	bucket := ossClient.GetBucket()
-	err = bucket.PutObjectFromFile("files/"+ut.Hash, ut.CacheFilePath, oss.ContentType(mimeType))
+	ossFilePath := "files/" + ut.Hash
+	err = bucket.PutObjectFromFile(ossFilePath, ut.CacheFilePath, oss.ContentType(mimeType))
 	if err != nil {
 		return
 	}
 	lg.Info("Upload to OSS completed")
 
-	// TODO 如果文件是视频类型，同时启动转码服务
+	// 如果文件是视频类型，同时启动转码服务
 	if match, _ := regexp.MatchString("video/.*", mimeType); match {
 		lg.Info("File is of type video, will request converting")
+		go aliyun.VideoSnapShot(ossFilePath, "converted/"+ut.Hash+"/snapshot.jpg")
+		go aliyun.VideoCovert(ossFilePath, "converted/"+ut.Hash+"/playable.mp4")
 	}
 	return
 }
@@ -134,7 +139,7 @@ func (utwt *UploadTaskWithTarget) Upload(completed chan bool) {
 		redisClient := redisdb.GetClient()
 		redisClient.Del(GetUploadTaskCacheKey(utwt.UploadTask.Hash))
 		_ = os.Remove(utwt.UploadTask.CacheFilePath)
-		lg.Infof("File %s has no other upload task, will remove temp file and redis cache")
+		lg.Infof("File %s has no other upload task, will remove temp file and redis cache", utwt.UploadTask.Hash)
 	}
 
 	completed <- true

@@ -30,6 +30,17 @@ mongo:
   connection_uri: mongodb://127.0.0.1:27017
   db: ipweb-storage
 
+# 阿里云及 OSS 的配置
+aliyun:
+  endpoint: oss-cn-hongkong.aliyuncs.com
+  accessKey: LTAIyM1HpVjLYkMh
+  accessSecret: U90pZ80lt8k0iF70phEOpeZRuIZZKh
+  bucket: ipweb-storage
+  ossLocation: oss-cn-hongkong
+  region: cn-hongkong
+  mtsPipelineId: 059983880b3a4895a8440155279a13b5
+  mtsConvertTemplateId: ed0b0a2ea1c149519fbcec37a739936e
+
 # 外部依赖
 external:
   ffmpeg: "docker run --rm -t -v $PWD:$PWD -w $PWD jrottenberg/ffmpeg:4.1-ubuntu"
