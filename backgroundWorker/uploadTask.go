@@ -6,6 +6,7 @@ import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/go-redis/redis"
 	"github.com/ipweb-group/file-server/externals/aliyun"
+	"github.com/ipweb-group/file-server/externals/mongodb/fileRecord"
 	"github.com/ipweb-group/file-server/externals/ossClient"
 	"github.com/ipweb-group/file-server/externals/redisdb"
 	"github.com/ipweb-group/file-server/utils"
@@ -25,6 +26,7 @@ const (
 )
 
 type UploadTask struct {
+	FileRecordId  string `json:"fileRecordId"` // 文件保存在 mongo file_records 表中的 ID
 	Hash          string `json:"hash"`
 	CacheFilePath string `json:"cacheFilePath"`
 	Filename      string `json:"filename"`
@@ -45,14 +47,14 @@ func (ut *UploadTask) ToJSON() string {
 
 // 获取用于保存在 ZSET 中的 member 名称
 func (ut *UploadTask) GetMemberName(target string) string {
-	return target + ":" + ut.Hash
+	return target + ":" + ut.FileRecordId
 }
 
-// 解码 Member 名称，并返回 Target 和 Hash
-func (ut UploadTask) DecodeMemberName(memberName string) (target, hash string) {
+// 解码 Member 名称，并返回 Target 和 fileRecordId
+func (ut UploadTask) DecodeMemberName(memberName string) (target, fileRecordId string) {
 	ret := strings.SplitN(memberName, ":", 2)
 	target = ret[0]
-	hash = ret[1]
+	fileRecordId = ret[1]
 	return
 }
 
@@ -91,26 +93,33 @@ func (ut *UploadTask) UploadToOSS() (err error) {
 	// 如果文件是视频类型，同时启动转码服务
 	if match, _ := regexp.MatchString("video/.*", mimeType); match {
 		lg.Info("File is of type video, will request converting")
-		go aliyun.VideoSnapShot(ossFilePath, "converted/"+ut.Hash+"/snapshot.jpg")
-		go aliyun.VideoCovert(ossFilePath, "converted/"+ut.Hash+"/playable.mp4")
+		go func() {
+			if err := aliyun.VideoSnapShot(ossFilePath, "converted/"+ut.Hash+"/snapshot.jpg"); err != nil {
+				lg.Error("[MTS] Create video snapshot failed, ", err)
+			}
+		}()
+		go func() {
+			jobId, err := aliyun.VideoCovert(ossFilePath, "converted/"+ut.Hash+"/playable.mp4")
+			if err != nil {
+				lg.Error("[MTS] Create video convert job failed, ", err)
+			} else {
+				// 更新 jobId 到文件记录
+				fileRecord.UpdateVideoJobId(ut.FileRecordId, jobId)
+			}
+		}()
 	}
 	return
 }
 
 // 添加任务到队列
 // target 为 CDN 或 IPFS
-func (ut *UploadTask) Enqueue(target string) {
+func (ut *UploadTask) Enqueue(target string, taskTime int64) {
 	redisClient := redisdb.GetClient()
 	// 添加任务
-	redisClient.Set(GetUploadTaskCacheKey(ut.Hash), ut.ToJSON(), 0)
+	redisClient.Set(GetUploadTaskCacheKey(ut.FileRecordId), ut.ToJSON(), 0)
 	// 添加任务到队列
-	ut.addToZSet(target, time.Now().Unix())
-}
-
-// 添加任务到 ZSET
-func (ut *UploadTask) addToZSet(target string, score int64) {
-	redisdb.GetClient().ZAdd(GetUploadQueueCacheKey(), redis.Z{
-		Score:  float64(score),
+	redisClient.ZAdd(GetUploadQueueCacheKey(), redis.Z{
+		Score:  float64(taskTime),
 		Member: ut.GetMemberName(target),
 	})
 }
@@ -135,14 +144,14 @@ func (utwt *UploadTaskWithTarget) Upload(completed chan bool) {
 		// 出错后，重试次数加一
 		utwt.UploadTask.RetryTimes++
 		// 重试时间加一分钟，并重新保存回 Redis
-		utwt.UploadTask.addToZSet(utwt.Target, time.Now().Unix()+60)
+		utwt.UploadTask.Enqueue(utwt.Target, time.Now().Unix()+60)
 	}
 
 	// 上传完成后，检查 Queue 中是否存在相同 hash 的不同类型的任务，如果没有别的任务，
 	// 这时就可以安全地删除 Redis 缓存及临时文件
 	if !utwt.HasAnotherTask() {
 		redisClient := redisdb.GetClient()
-		redisClient.Del(GetUploadTaskCacheKey(utwt.UploadTask.Hash))
+		redisClient.Del(GetUploadTaskCacheKey(utwt.UploadTask.FileRecordId))
 		_ = os.Remove(utwt.UploadTask.CacheFilePath)
 		lg.Infof("File %s has no other upload task, will remove temp file and redis cache", utwt.UploadTask.Hash)
 	}
@@ -166,8 +175,8 @@ func (utwt *UploadTaskWithTarget) HasAnotherTask() bool {
 }
 
 // 获取任务缓存 Key
-func GetUploadTaskCacheKey(hash string) string {
-	return "IPWEB:FS:TASK:UP:" + hash
+func GetUploadTaskCacheKey(fileRecordId string) string {
+	return "IPWEB:FS:TASK:UP:" + fileRecordId
 }
 
 // 获取上传队列名字 （ZSET）
@@ -196,12 +205,12 @@ func DequeueUploadTask() (ut UploadTaskWithTarget, err error) {
 
 	key := _t[0]
 	// 用冒号分割 Key
-	target, hash := UploadTask{}.DecodeMemberName(key)
+	target, fileRecordId := UploadTask{}.DecodeMemberName(key)
 
 	lg.Info("An upload task detected, ", key)
 
 	// 获取任务缓存
-	cacheKey := GetUploadTaskCacheKey(hash)
+	cacheKey := GetUploadTaskCacheKey(fileRecordId)
 	_cacheStr, err := redisClient.Get(cacheKey).Result()
 	if err != nil {
 		return

@@ -6,13 +6,13 @@ import (
 )
 
 type MediaInfo struct {
-	Width    int    `json:"width"`
-	Height   int    `json:"height"`
-	Duration string `json:"duration"` // 时长是个浮点数，这里直接用字符串保存
-	Type     string `json:"type"`     // 类型。针对图片可能是 jpeg/png/gif；针对视频可能是 h264 等
+	Width    int    `json:"width" bson:"width"`
+	Height   int    `json:"height" bson:"height"`
+	Duration string `json:"duration" bson:"duration"` // 时长是个浮点数，这里直接用字符串保存
+	Type     string `json:"type" bson:"type"`         // 类型。针对图片可能是 jpeg/png/gif；针对视频可能是 h264 等
 }
 
-func DetectMediaInfo(filePath string, mimeType string) (info MediaInfo, needCovert bool, err error) {
+func DetectMediaInfo(filePath string, mimeType string) (info MediaInfo, err error) {
 	lg := utils.GetLogger()
 
 	// 如果文件是支持的图片类型，就调用图片处理器获取图片尺寸信息
@@ -31,8 +31,6 @@ func DetectMediaInfo(filePath string, mimeType string) (info MediaInfo, needCove
 		if err != nil {
 			return
 		}
-
-		needCovert = true
 	}
 
 	return

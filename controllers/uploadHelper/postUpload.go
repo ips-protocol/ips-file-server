@@ -1,7 +1,7 @@
 package uploadHelper
 
 import (
-	"github.com/ipweb-group/file-server/externals/mongodb"
+	"github.com/ipweb-group/file-server/externals/mongodb/fileRecord"
 	"github.com/ipweb-group/file-server/putPolicy"
 	"github.com/ipweb-group/file-server/utils"
 	"github.com/kataras/iris"
@@ -11,22 +11,22 @@ import (
 )
 
 // 根据文件表中的内容生成魔法变量
-// *注意* 文件名是根据上传的文件实际名称来的，所以需要单独传
-func MakeMagicVariable(file mongodb.File, endUser string, filename string) putPolicy.MagicVariable {
+func MakeMagicVariable(file fileRecord.FileRecord) putPolicy.MagicVariable {
 	return putPolicy.MagicVariable{
-		FName:    filename,
-		FSize:    file.FileSize,
+		FName:    file.Filename,
+		FSize:    file.Size,
 		MimeType: file.MimeType,
-		EndUser:  endUser,
-		Hash:     file.Id,
+		EndUser:  file.PutPolicy.EndUser,
+		Hash:     file.Hash,
 		Width:    file.MediaInfo.Width,
 		Height:   file.MediaInfo.Height,
 		Duration: file.MediaInfo.Duration,
 	}
 }
 
-func PostUpload(ctx iris.Context, file mongodb.File, policy putPolicy.PutPolicy, filename string) {
+func PostUpload(ctx iris.Context, file fileRecord.FileRecord) {
 	lg := utils.GetLogger()
+	policy := file.PutPolicy
 
 	// 如果上传策略中指定了 returnBody，就去解析这个 returnBody。如果同时指定了 returnUrl，将会 303 跳转到该地址，
 	// 否则就直接将 returnBody 的内容显示在浏览器上
@@ -34,7 +34,7 @@ func PostUpload(ctx iris.Context, file mongodb.File, policy putPolicy.PutPolicy,
 	lg.Debug("Return Url is ", policy.ReturnUrl)
 
 	// 初始化魔法变量对象
-	magicVariable := MakeMagicVariable(file, policy.EndUser, filename)
+	magicVariable := MakeMagicVariable(file)
 
 	if policy.ReturnBody != "" || policy.ReturnUrl != "" {
 		returnBody := magicVariable.ApplyMagicVariables(policy.ReturnBody, putPolicy.EscapeJSON)
@@ -80,8 +80,8 @@ func PostUpload(ctx iris.Context, file mongodb.File, policy putPolicy.PutPolicy,
 
 	// 未指定回调地址时，返回默认内容
 	_, _ = ctx.JSON(iris.Map{
-		"hash":   file.Id,
-		"length": file.FileSize,
+		"hash":   file.Hash,
+		"length": file.Size,
 	})
 }
 

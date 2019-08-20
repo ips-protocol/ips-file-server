@@ -22,7 +22,7 @@ func GetMTSClient() *mts.Client {
 	return mtsClient
 }
 
-func VideoSnapShot(input, output string) {
+func VideoSnapShot(input, output string) (err error) {
 	client := GetMTSClient()
 	c := config.GetConfig().Aliyun
 
@@ -30,16 +30,16 @@ func VideoSnapShot(input, output string) {
 	snapshotJob.Input = fmt.Sprintf(`{"Bucket":"%s", "Location": "%s","Object":"%s" }`, c.Bucket, c.OssLocation, input)
 	snapshotJob.SnapshotConfig = fmt.Sprintf(`{"OutputFile": {"Bucket": "%s","Location":"%s","Object": "%s"},"Time": "5"}`, c.Bucket, c.OssLocation, output)
 
-	resp, err := client.SubmitSnapshotJob(snapshotJob)
+	_, err = client.SubmitSnapshotJob(snapshotJob)
 	if err != nil {
+		return
 		log.Fatal(err)
 	}
 
-	// TODO 记录转换 ID 到数据库
-	fmt.Println(resp)
+	return
 }
 
-func VideoCovert(input, output string) {
+func VideoCovert(input, output string) (jobId string, err error) {
 	client := GetMTSClient()
 	c := config.GetConfig().Aliyun
 
@@ -52,9 +52,9 @@ func VideoCovert(input, output string) {
 
 	resp, err := client.SubmitJobs(job)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 
-	// TODO 记录转换 ID 到数据库
-	fmt.Println(resp)
+	jobId = resp.JobResultList.JobResult[0].Job.JobId
+	return
 }
