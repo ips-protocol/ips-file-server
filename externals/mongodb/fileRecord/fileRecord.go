@@ -51,6 +51,20 @@ func (receiver *FileRecord) Insert() (id string, err error) {
 	return
 }
 
+// 更新视频信息
+func (receiver *FileRecord) UpdateVideoJobInfo(jobInfo VideoConvertJobInfo) error {
+	receiver.VideoConvertJobInfo = jobInfo
+	filter := bson.M{"_id": receiver.Id}
+	update := bson.M{
+		"$set": bson.M{"video_convert_job_info": jobInfo},
+	}
+	_, err := GetCollection().UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // 更新视频转码的任务 ID （用于 OSS 上传完成，并发送转码服务后）
 func UpdateVideoJobId(fileRecordId, videoJobId string) error {
 	filter := bson.M{"_id": fileRecordId}
@@ -62,4 +76,11 @@ func UpdateVideoJobId(fileRecordId, videoJobId string) error {
 		return err
 	}
 	return nil
+}
+
+// 根据视频转码的任务 ID 查找对应的文件记录
+func GetFileRecordByVideoJobID(jobId string) (record FileRecord, err error) {
+	filter := bson.M{"video_convert_job_info.job_id": jobId}
+	err = GetCollection().FindOne(context.Background(), filter).Decode(&record)
+	return
 }

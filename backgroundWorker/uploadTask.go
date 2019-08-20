@@ -104,7 +104,9 @@ func (ut *UploadTask) UploadToOSS() (err error) {
 				lg.Error("[MTS] Create video convert job failed, ", err)
 			} else {
 				// 更新 jobId 到文件记录
-				fileRecord.UpdateVideoJobId(ut.FileRecordId, jobId)
+				if err = fileRecord.UpdateVideoJobId(ut.FileRecordId, jobId); err != nil {
+					lg.Error("[MTS] Update convert video job id to DB failed, ", err)
+				}
 			}
 		}()
 	}
