@@ -57,7 +57,7 @@ clients:
   # 云盘
   - access_key: XS9RXcvY4HY9p3gwyZardQcR7il0d8HN
     secret_key: b64iqKC3Cd7WsTAeqW3gozku9e4V561u8GBAWU1QULb2oHHr
-    description: IPWEB Cloud Disk"
+    description: IPWEB Cloud Disk
 
   # 暂未使用
   - access_key: YT2dSPZhS8P0atX6FRdpBsOZdhoj6qOH

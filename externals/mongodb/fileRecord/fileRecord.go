@@ -2,7 +2,6 @@ package fileRecord
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"github.com/ipweb-group/file-server/externals/mongodb"
 	"github.com/ipweb-group/file-server/putPolicy"
 	"github.com/ipweb-group/file-server/putPolicy/mediaHandler"
@@ -20,8 +19,8 @@ type FileRecord struct {
 	MimeType            string                 `bson:"mime_type"`
 	Size                int64                  `bson:"size"`
 	PutPolicy           putPolicy.PutPolicy    `bson:"put_policy"`
-	MediaInfo           mediaHandler.MediaInfo `bson:"media_info"`
-	VideoConvertJobInfo VideoConvertJobInfo    `bson:"video_convert_job_info"`
+	MediaInfo           mediaHandler.MediaInfo `bson:"media_info,omitempty"`
+	VideoConvertJobInfo VideoConvertJobInfo    `bson:"video_convert_job_info,omitempty"`
 	CreatedAt           primitive.DateTime     `bson:"created_at"`
 }
 
@@ -38,8 +37,8 @@ func GetCollection() *mongo.Collection {
 }
 
 func (receiver *FileRecord) Insert() (id string, err error) {
-	randomUUID, _ := uuid.NewRandom()
-	receiver.Id = randomUUID.String()
+	// 使用十六进制的 ObjectID 作为主键 ID，保存为 string 类型
+	receiver.Id = primitive.NewObjectID().Hex()
 	receiver.CreatedAt = primitive.DateTime(time.Now().Unix() * 1000)
 
 	_, err = GetCollection().InsertOne(context.Background(), receiver)
@@ -81,6 +80,13 @@ func UpdateVideoJobId(fileRecordId, videoJobId string) error {
 // 根据视频转码的任务 ID 查找对应的文件记录
 func GetFileRecordByVideoJobID(jobId string) (record FileRecord, err error) {
 	filter := bson.M{"video_convert_job_info.job_id": jobId}
+	err = GetCollection().FindOne(context.Background(), filter).Decode(&record)
+	return
+}
+
+// 根据文件 Hash 获取文件记录
+func GetFileRecordByHash(hash string) (record FileRecord, err error) {
+	filter := bson.M{"hash": hash}
 	err = GetCollection().FindOne(context.Background(), filter).Decode(&record)
 	return
 }
