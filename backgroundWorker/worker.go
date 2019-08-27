@@ -1,6 +1,7 @@
 package backgroundWorker
 
 import (
+	"context"
 	"github.com/ipweb-group/file-server/utils"
 	"github.com/kataras/golog"
 	"time"
@@ -8,19 +9,27 @@ import (
 
 var lg *golog.Logger
 
-func StartWorker() {
+func StartWorker(ctx context.Context) {
 	lg = utils.GetLogger()
 
 	lg.Info("Background worker is started")
 
-	blockFlag := make(chan bool)
+	blockFlag := make(chan bool, 1)
+
+	go jobDetector(blockFlag)
 
 	for {
-		time.Sleep(2 * time.Second)
+		select {
+		case <-ctx.Done():
+			lg.Info("Background worker is canceling")
+			<-blockFlag
+			// ctx 已取消
+			return
 
-		go jobDetector(blockFlag)
-
-		<-blockFlag
+		case <-blockFlag:
+			time.Sleep(2 * time.Second)
+			go jobDetector(blockFlag)
+		}
 	}
 }
 

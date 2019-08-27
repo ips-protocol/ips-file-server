@@ -44,7 +44,9 @@ func main() {
 	}
 
 	// 启动后台 Worker
-	go backgroundWorker.StartWorker()
+	ctx, cancelBackgroundWorker := context.WithCancel(context.Background())
+	go backgroundWorker.StartWorker(ctx)
+	defer cancelBackgroundWorker()
 
 	// 404 错误输出
 	app.OnErrorCode(iris.StatusNotFound, func(ctx irisContext.Context) {
@@ -59,6 +61,11 @@ func main() {
 		timeout := 15 * time.Second
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
+
+		utils.GetLogger().Info("Server is stopping...")
+
+		// 停止后台 Worker
+		cancelBackgroundWorker()
 
 		// 关闭 RPC 客户端
 		if err := rpcClient.Close(); err != nil {
