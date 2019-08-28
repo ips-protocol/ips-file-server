@@ -33,6 +33,12 @@ func (s *UploadController) Upload(ctx iris.Context) {
 	}
 	policy := decodedPutPolicy.PutPolicy
 
+	// 强制 endUser 为必填项
+	if policy.EndUser == "" {
+		throwError(iris.StatusUnprocessableEntity, "EndUser must be provided", ctx)
+		return
+	}
+
 	// 获取表单上传的文件
 	file, fileHeader, err := ctx.FormFile("file")
 	if err != nil {
@@ -75,13 +81,14 @@ func (s *UploadController) Upload(ctx iris.Context) {
 
 	// 4. 构建上传记录信息，并写入到数据库
 	uploadFileRecord := fileRecord.FileRecord{
-		Hash:      hash,
-		Client:    decodedPutPolicy.AppClient.Description,
-		Filename:  filename,
-		MimeType:  mimeType,
-		Size:      size,
-		PutPolicy: policy,
-		MediaInfo: mediaInfo,
+		Hash:        hash,
+		Client:      decodedPutPolicy.AppClient.Description,
+		ClientAppId: decodedPutPolicy.AppClient.AccessKey,
+		Filename:    filename,
+		MimeType:    mimeType,
+		Size:        size,
+		PutPolicy:   policy,
+		MediaInfo:   mediaInfo,
 	}
 	uploadFileRecordId, err := uploadFileRecord.Insert()
 	if err != nil {

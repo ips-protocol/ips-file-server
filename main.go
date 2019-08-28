@@ -105,6 +105,9 @@ func routers(app *iris.Application) {
 		v1.Get("/file/{cid:string}", downloadController.StreamedDownload)
 		v1.Get("/file/{cid:string}/{operation:string}", downloadController.StreamedDownload)
 
+		deleteController := controllers.DeleteController{}
+		v1.Post("/file/delete", deleteController.Delete)
+
 		v1.Post("/mts/subscriber", controllers.MTSController{}.Subscriber)
 	}
 }

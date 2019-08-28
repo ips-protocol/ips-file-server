@@ -1,7 +1,6 @@
 package backgroundWorker
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/ipweb-group/file-server/externals/redisdb"
 	"github.com/ipweb-group/file-server/utils"
@@ -10,11 +9,6 @@ import (
 
 type DownloadTask struct {
 	Hash string `json:"hash"`
-}
-
-func (dt *DownloadTask) ToJSON() string {
-	str, _ := json.Marshal(dt)
-	return string(str)
 }
 
 // 添加任务到队列

@@ -21,6 +21,7 @@ func StartWorker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			// FIXME 平滑关闭功能尚有 Bug
 			lg.Info("Background worker is canceling")
 			<-blockFlag
 			// ctx 已取消
@@ -48,6 +49,13 @@ func jobDetector(flag chan bool) {
 		_downloadTask.Download(flag)
 		return
 	}
+
+	// 检查是否有删除任务
+	//_deleteTask, err := DequeueDeleteTask()
+	//if err == nil {
+	//	_deleteTask.Delete(flag)
+	//	return
+	//}
 
 	flag <- false
 }

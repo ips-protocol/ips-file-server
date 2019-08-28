@@ -15,6 +15,7 @@ type FileRecord struct {
 	Id                  string                 `bson:"_id"`
 	Hash                string                 `bson:"hash"`
 	Client              string                 `bson:"client"`
+	ClientAppId         string                 `bson:"client_app_id"`
 	Filename            string                 `bson:"filename"`
 	MimeType            string                 `bson:"mime_type"`
 	Size                int64                  `bson:"size"`
@@ -89,4 +90,23 @@ func GetFileRecordByHash(hash string) (record FileRecord, err error) {
 	filter := bson.M{"hash": hash}
 	err = GetCollection().FindOne(context.Background(), filter).Decode(&record)
 	return
+}
+
+// 删除所有满足条件的记录
+func DeleteAllRecordByCondition(filter interface{}) (*mongo.DeleteResult, error) {
+	return GetCollection().DeleteMany(context.Background(), filter)
+}
+
+// 计算某个 Hash 的文件在数据库中的数量
+func CountHash(hash string) (int64, error) {
+	return GetCollection().CountDocuments(context.Background(), bson.M{"hash": hash})
+}
+
+// 判断某个 Hash 是否存在
+func HashExists(hash string) bool {
+	count, err := CountHash(hash)
+	if err != nil {
+		return false
+	}
+	return count > 0
 }
