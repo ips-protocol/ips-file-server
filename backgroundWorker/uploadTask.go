@@ -120,10 +120,18 @@ func (ut *UploadTask) Enqueue(target string, taskTime int64) {
 	// 添加任务
 	redisClient.Set(GetUploadTaskCacheKey(ut.FileRecordId), ut.ToJSON(), 0)
 	// 添加任务到队列
-	redisClient.ZAdd(GetUploadQueueCacheKey(), redis.Z{
-		Score:  float64(taskTime),
-		Member: ut.GetMemberName(target),
-	})
+	// FIXME 临时处理，暂时把所有上传到 OSS 的任务调到最前面优先上传，以避免 IPFS 上传任务卡死导致 OSS 无法上传的问题
+	if target == CDN {
+		redisClient.ZAdd(GetUploadQueueCacheKey(), redis.Z{
+			Score:  1, // score 使用一个尽量小的值，以使任务置顶
+			Member: ut.GetMemberName(target),
+		})
+	} else {
+		redisClient.ZAdd(GetUploadQueueCacheKey(), redis.Z{
+			Score:  float64(taskTime),
+			Member: ut.GetMemberName(target),
+		})
+	}
 }
 
 // 执行上传任务
