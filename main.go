@@ -108,6 +108,9 @@ func routers(app *iris.Application) {
 		deleteController := controllers.DeleteController{}
 		v1.Post("/file/delete", deleteController.Delete)
 
+		listController := controllers.ListController{}
+		v1.Get("/nodes", listController.GetList)
+
 		v1.Post("/mts/subscriber", controllers.MTSController{}.Subscriber)
 	}
 }
