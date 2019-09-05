@@ -19,6 +19,15 @@ type UploadController struct{}
  */
 func (s *UploadController) Upload(ctx iris.Context) {
 	lg := ctx.Application().Logger()
+
+	// 处理跨域响应
+	corsResponse(ctx)
+	if ctx.Request().Method == iris.MethodOptions {
+		ctx.StatusCode(iris.StatusNoContent)
+		_, _ = ctx.WriteString("")
+		return
+	}
+
 	token := ctx.FormValue("token")
 	if len(token) == 0 {
 		throwError(iris.StatusUnprocessableEntity, "No Upload Token Specified", ctx)
@@ -121,4 +130,18 @@ func throwError(statusCode int, error string, ctx iris.Context) {
 	_, _ = ctx.JSON(iris.Map{
 		"error": error,
 	})
+}
+
+func corsResponse(ctx iris.Context) {
+	origin := ctx.GetHeader("origin")
+	if origin != "" {
+		ctx.Header("Access-Control-Allow-Origin", origin)
+		ctx.Header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH,HEAD,OPTIONS")
+		ctx.Header("Access-Control-Max-Age", "86400")
+	}
+
+	headers := ctx.GetHeader("access-control-request-headers")
+	if headers != "" {
+		ctx.Header("Access-Control-Allow-Headers", headers)
+	}
 }

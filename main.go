@@ -100,7 +100,7 @@ func routers(app *iris.Application) {
 	{
 		uploadController := controllers.UploadController{}
 		v1.Post("/upload", uploadController.Upload)
-		v1.Options("/upload", optionsHandler)
+		v1.Options("/upload", uploadController.Upload)
 
 		downloadController := controllers.DownloadController{}
 		v1.Get("/file/{cid:string}", downloadController.StreamedDownload)
@@ -114,13 +114,4 @@ func routers(app *iris.Application) {
 
 		v1.Post("/mts/subscriber", controllers.MTSController{}.Subscriber)
 	}
-}
-
-func optionsHandler(ctx iris.Context) {
-	ctx.StatusCode(iris.StatusNoContent)
-	ctx.Header("Access-Control-Allow-Origin", "*")
-	ctx.Header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH,HEAD,OPTIONS")
-	ctx.Header("Access-Control-Max-Age", "86400")
-
-	_, _ = ctx.WriteString("")
 }
