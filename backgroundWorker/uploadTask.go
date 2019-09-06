@@ -120,12 +120,14 @@ func (ut *UploadTask) Enqueue(target string, taskTime int64) {
 	// 添加任务
 	redisClient.Set(GetUploadTaskCacheKey(ut.FileRecordId), ut.ToJSON(), 0)
 	// 添加任务到队列
-	// FIXME 临时处理，暂时把所有上传到 OSS 的任务调到最前面优先上传，以避免 IPFS 上传任务卡死导致 OSS 无法上传的问题
 	if target == CDN {
-		redisClient.ZAdd(GetUploadQueueCacheKey(), redis.Z{
-			Score:  1, // score 使用一个尽量小的值，以使任务置顶
-			Member: ut.GetMemberName(target),
-		})
+		// 如果任务是上传到 CDN 的，直接启动一个新的线程在后台上传文件，不再走队列，以避免由于队列阻塞导致的文件迟迟未能上传
+		utwt := UploadTaskWithTarget{
+			Target:     CDN,
+			UploadTask: *ut,
+		}
+		go utwt.Upload(nil)
+
 	} else {
 		redisClient.ZAdd(GetUploadQueueCacheKey(), redis.Z{
 			Score:  float64(taskTime),
@@ -166,7 +168,9 @@ func (utwt *UploadTaskWithTarget) Upload(completed chan bool) {
 		lg.Infof("File %s has no other upload task, will remove temp file and redis cache", utwt.UploadTask.Hash)
 	}
 
-	completed <- true
+	if completed != nil {
+		completed <- true
+	}
 	return
 }
 
