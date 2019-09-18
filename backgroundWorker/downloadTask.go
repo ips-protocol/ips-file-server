@@ -20,7 +20,10 @@ func (dt *DownloadTask) Enqueue() {
 // 执行下载任务
 func (dt *DownloadTask) Download(completed chan bool) {
 	rpcClient, _ := utils.GetClientInstance()
-	_, _ = rpcClient.Download(dt.Hash, ioutil.Discard)
+	_, err := rpcClient.Download(dt.Hash, ioutil.Discard)
+	if err != nil {
+		lg.Error("Background download failed, ", err)
+	}
 	completed <- true
 }
 
