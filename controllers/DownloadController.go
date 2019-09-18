@@ -86,6 +86,11 @@ func (d *DownloadController) StreamedDownload(ctx iris.Context) {
 
 	// 添加后台下载任务。Range 请求时，仅从 0 开始的请求需要后台下载
 	defer func() {
+		// 如果请求操作为缩略图或视频截图，将不产生下载任务
+		if operation == "snapshot" || strings.HasPrefix(operation, "thumb-") {
+			return
+		}
+
 		if rangeHeader == "" || strings.HasPrefix(rangeHeader, "0-") {
 			downloadTask := backgroundWorker.DownloadTask{Hash: cid}
 			downloadTask.Enqueue()
