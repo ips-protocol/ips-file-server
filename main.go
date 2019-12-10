@@ -33,6 +33,8 @@ func main() {
 	// 初始化 Web 服务器
 	app := iris.Default()
 	// 设置日志实例
+	logger := app.Logger()
+	logger.SetTimeFormat("2006/01/02 15:04:05")
 	utils.SetLogger(app.Logger())
 
 	conf := config.GetConfig()
