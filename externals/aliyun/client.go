@@ -28,7 +28,7 @@ func VideoSnapShot(input, output string) (err error) {
 
 	snapshotJob := mts.CreateSubmitSnapshotJobRequest()
 	snapshotJob.Input = fmt.Sprintf(`{"Bucket":"%s", "Location": "%s","Object":"%s" }`, c.Bucket, c.OssLocation, input)
-	snapshotJob.SnapshotConfig = fmt.Sprintf(`{"OutputFile": {"Bucket": "%s","Location":"%s","Object": "%s"},"Time": "5"}`, c.Bucket, c.OssLocation, output)
+	snapshotJob.SnapshotConfig = fmt.Sprintf(`{"OutputFile": {"Bucket": "%s","Location":"%s","Object": "%s"},"Time": "3000"}`, c.Bucket, c.OssLocation, output)
 
 	_, err = client.SubmitSnapshotJob(snapshotJob)
 	if err != nil {
