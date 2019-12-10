@@ -79,7 +79,7 @@ func (s *UploadController) Upload(ctx iris.Context) {
 	// 2. 保存上传后的文件到临时目录下
 	fileExt := path.Ext(filename)
 	mimeType = mime.TypeByExtension(fileExt)
-	tmpFilePath, err := uploadHelper.WriteTmpFile(file, hash, fileExt)
+	tmpFilePath, err := uploadHelper.WriteTmpFile(file, fileExt)
 
 	// 3. 检查文件类型及媒体信息
 	// 检测媒体文件信息。当上传文件为图片或视频时，会检测文件的尺寸、时长等信息
