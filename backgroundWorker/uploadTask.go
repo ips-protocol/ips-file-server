@@ -9,8 +9,9 @@ import (
 	"github.com/ipweb-group/file-server/externals/mongodb/fileRecord"
 	"github.com/ipweb-group/file-server/externals/ossClient"
 	"github.com/ipweb-group/file-server/externals/redisdb"
+	"github.com/ipweb-group/file-server/putPolicy/mediaHandler"
 	"github.com/ipweb-group/file-server/utils"
-
+	"math/rand"
 	"mime"
 	"os"
 	"path"
@@ -26,13 +27,14 @@ const (
 )
 
 type UploadTask struct {
-	FileRecordId  string `json:"fileRecordId"` // 文件保存在 mongo file_records 表中的 ID
-	Hash          string `json:"hash"`
-	CacheFilePath string `json:"cacheFilePath"`
-	Filename      string `json:"filename"`
-	FileSize      int64  `json:"fileSize"`
-	ClientKey     string `json:"clientKey"`
-	RetryTimes    int    `json:"retryTimes"`
+	FileRecordId  string                 `json:"fileRecordId"` // 文件保存在 mongo file_records 表中的 ID
+	Hash          string                 `json:"hash"`
+	CacheFilePath string                 `json:"cacheFilePath"`
+	Filename      string                 `json:"filename"`
+	FileSize      int64                  `json:"fileSize"`
+	ClientKey     string                 `json:"clientKey"`
+	MediaInfo     mediaHandler.MediaInfo `json:"mediaInfo"`
+	RetryTimes    int                    `json:"retryTimes"`
 }
 
 type UploadTaskWithTarget struct {
@@ -94,7 +96,9 @@ func (ut *UploadTask) UploadToOSS() (err error) {
 	if match, _ := regexp.MatchString("video/.*", mimeType); match {
 		lg.Info("File is of type video, will request converting")
 		go func() {
-			if err := aliyun.VideoSnapShot(ossFilePath, "converted/"+ut.Hash+"/snapshot.jpg"); err != nil {
+			// 随机获取视频截图的时间点，并启动截图
+			randomSnapshotTime := ut.calcVideoSnapshotTime()
+			if err := aliyun.VideoSnapShot(ossFilePath, "converted/"+ut.Hash+"/snapshot.jpg", randomSnapshotTime); err != nil {
 				lg.Error("[MTS] Create video snapshot failed, ", err)
 			}
 		}()
@@ -196,6 +200,34 @@ func GetUploadTaskCacheKey(fileRecordId string) string {
 // 获取上传队列名字 （ZSET）
 func GetUploadQueueCacheKey() string {
 	return "IPWEB:FS:QUEUE:UP"
+}
+
+// 计算视频截图的时间点
+// 根据视频的总时长计算，取总时长位置 20% 到 50% 之间的一个随机时间点
+// 未能获取时间时，默认返回 1000（毫秒）
+func (ut *UploadTask) calcVideoSnapshotTime() int32 {
+	var defaultRet int32 = 1000
+	duration := ut.MediaInfo.Duration
+	if duration == "" {
+		return defaultRet
+	}
+
+	durationFloat64, err := strconv.ParseFloat(duration, 64)
+	if err != nil {
+		return defaultRet
+	}
+
+	randStart := int32(durationFloat64 * 1000 / 5)
+	randEnd := int32(durationFloat64 * 1000 / 2)
+
+	if randEnd <= randStart {
+		return defaultRet
+	}
+
+	rand.Seed(time.Now().Unix())
+	timeDiff := rand.Int31n(randEnd - randStart)
+
+	return randStart + timeDiff
 }
 
 // 从上传队列中弹出一个任务，同时从 ZSET 中移除该任务，并返回解析后的任务内容

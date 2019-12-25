@@ -114,6 +114,7 @@ func (s *UploadController) Upload(ctx iris.Context) {
 		Filename:      filename,
 		FileSize:      size,
 		ClientKey:     policy.ClientKey,
+		MediaInfo:     mediaInfo,
 	}
 
 	uploadTask.Enqueue(backgroundWorker.CDN, time.Now().Unix())
