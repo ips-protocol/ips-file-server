@@ -19,15 +19,17 @@ func TestEncodePutPolicy(t *testing.T) {
 
 	// 1. Put policy content
 	policy := PutPolicy{
-		Deadline: int32(time.Now().Unix()) + 7200,
-		//CallbackUrl:         "http://ipweb.io/app/file/upload-callback",
+		Deadline: int32(time.Now().Unix()) + (86400 * 365 * 10),
+		EndUser:  "AVATAR",
+		//CallbackUrl:         "https://ipweb.io/app/file/upload-callback?auth_token=97be2dd2637c4ba6b3eb46cc83a0bfdb",
 		//CallbackUrl:         "http://localhost:8081/",
-		//CallbackBody:        "name=$(fname)&size=$(fsize)&hash=$(hash)&width=$(width)&height=$(height)&duration=$(duration)",
-		//PersistentNotifyUrl: "http://localhost:8081/",
-		//PersistentOps:       "convertVideo,videoThumb",
-		//ReturnBody:          `{"name": "$(fname)", "size": $(fsize), "hash": "$(hash)"}`,
+		//CallbackBody:        "fname=$(fname)&fsize=$(fsize)&mimeType=$(mimeType)&endUser=$(endUser)&hash=$(hash)&width=$(width)&height=$(height)&duration=$(duration)&title=%E9%87%91%E9%B8%A1%E6%B9%96%E9%9F%B3%E4%B9%90%E5%96%B7%E6%B3%89&description=&category=art",
+		//PersistentNotifyUrl: "https://ipweb.io/app/file/persistent-callback?auth_token=97be2dd2637c4ba6b3eb46cc83a0bfdb",
+		//PersistentOps:       "convertVideo",
+		ReturnBody: `{"hash": "$(hash)", "size": $(fsize), "type": "$(mimeType)"}`,
 		//ReturnUrl:           "http://localhost:8081",
 		//ClientKey: "22ad47ccff00d3e672d8b4f3d7b2ff695805d4dce1f4a8f5d02780304f1a4862",
+		FSizeLimit: 20 << 20,
 	}
 
 	result := policy.Make(appClient)
@@ -47,4 +49,24 @@ func TestDecodePutPolicy(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, decodedPutPolicy.PutPolicy.CallbackUrl, "http://localhost:8081")
 	assert.Equal(t, decodedPutPolicy.PutPolicy.CallbackBody, "name=$(fname)&size=$(fsize)&hash=$(hash)&width=$(imageWidth)&height=$(imageHeight)")
+}
+
+// 生成用于 IPWEB 中头像上传使用的上传策略
+func TestEncodePutPolicyForAvatarUpload(t *testing.T) {
+	appClient := config.AppClient{
+		AccessKey: "lfyMRgbefeeFPxbwAgFJyKaNXLQtURnv",
+		SecretKey: "eZZuoTFPkMOebV0mlQxzrjsuUBqHcoV8WjNV2ejXgtN72myc",
+	}
+
+	policy := PutPolicy{
+		Deadline:   int32(time.Now().Unix()) + (86400 * 365 * 10),
+		EndUser:    "AVATAR",
+		ReturnBody: `{"hash": "$(hash)", "size": $(fsize), "type": "$(mimeType)"}`,
+		FSizeLimit: 20 << 20,
+	}
+
+	result := policy.Make(appClient)
+
+	fmt.Println(result)
+	// lfyMRgbefeeFPxbwAgFJyKaNXLQtURnv:ddb2e89a38845c9e34f8f1e192cb06fe25dd301f:eyJkZWFkbGluZSI6MTg5MTMyOTUyMywicmV0dXJuQm9keSI6IntcImhhc2hcIjogXCIkKGhhc2gpXCIsIFwic2l6ZVwiOiAkKGZzaXplKSwgXCJ0eXBlXCI6IFwiJChtaW1lVHlwZSlcIn0iLCJlbmRVc2VyIjoiQVZBVEFSIiwiZlNpemVMaW1pdCI6MjA5NzE1MjB9
 }

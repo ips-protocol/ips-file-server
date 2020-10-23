@@ -1,7 +1,8 @@
-package backgroundWorker
+package worker
 
 import (
-	"context"
+	"github.com/ipweb-group/file-server/jobs"
+	"github.com/ipweb-group/file-server/uploaders"
 	"github.com/ipweb-group/file-server/utils"
 	"github.com/kataras/golog"
 	"time"
@@ -9,7 +10,7 @@ import (
 
 var lg *golog.Logger
 
-func StartWorker(ctx context.Context) {
+func StartWorker() {
 	lg = utils.GetLogger()
 
 	lg.Info("Background worker is started")
@@ -20,12 +21,6 @@ func StartWorker(ctx context.Context) {
 
 	for {
 		select {
-		case <-ctx.Done():
-			// FIXME 平滑关闭功能尚有 Bug
-			lg.Info("Background worker is canceling")
-			<-blockFlag
-			// ctx 已取消
-			return
 
 		case <-blockFlag:
 			time.Sleep(2 * time.Second)
@@ -37,11 +32,20 @@ func StartWorker(ctx context.Context) {
 func jobDetector(flag chan bool) {
 
 	// 检查是否有上传任务
-	//_uploadTask, err := jobs.DequeueUploadTask()
-	//if err == nil {
-	//_uploadTask.Upload(flag)
-	//return
+	_uploadJob, err := jobs.UploadJob{}.Dequeue()
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//	flag <- false
+	//	return
 	//}
+	if err == nil {
+		uploader := uploaders.IPFSUploader{
+			Job: _uploadJob,
+		}
+		_ = uploader.Upload()
+		flag <- true
+		return
+	}
 
 	// 检查是否有下载任务
 	//_downloadTask, err := DequeueDownloadTask()

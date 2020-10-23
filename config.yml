@@ -2,13 +2,6 @@
 # 服务器配置
 server:
   http_host: ":9090"
-  # 是否启用 HTTPS。启用 HTTPS 后会自动打开 `https_host` 指定的端口号，并自动获取 lets encrypt 证书
-  enable_https: false
-  https_host: ":443"
-  # 用于生成 HTTPS 证书时使用的域名，所有域名必须完整解析并且公网可访问
-  https_domains: up.ipweb.io
-  # 用于注册 lets encrypt 的邮箱地址
-  https_email: admin@example.com
 
 # 节点配置
 node_conf:

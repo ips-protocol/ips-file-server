@@ -1,13 +1,15 @@
 package controllers
 
 import (
-	"github.com/ipweb-group/file-server/backgroundWorker"
 	"github.com/ipweb-group/file-server/controllers/uploadHelper"
 	"github.com/ipweb-group/file-server/externals/mongodb/fileRecord"
+	"github.com/ipweb-group/file-server/jobs"
 	"github.com/ipweb-group/file-server/putPolicy"
 	"github.com/ipweb-group/file-server/putPolicy/mediaHandler"
+	"github.com/ipweb-group/file-server/uploaders"
 	"github.com/kataras/iris"
 	"mime"
+	"os"
 	"path"
 	"time"
 )
@@ -75,6 +77,7 @@ func (s *UploadController) Upload(ctx iris.Context) {
 		throwError(iris.StatusInternalServerError, "Failed to get file hash, "+err.Error(), ctx)
 		return
 	}
+	lg.Info("File CID is ", hash)
 
 	// 2. 保存上传后的文件到临时目录下
 	fileExt := path.Ext(filename)
@@ -106,8 +109,10 @@ func (s *UploadController) Upload(ctx iris.Context) {
 		return
 	}
 
+	lg.Info("Insert record to DB successful, object ID is ", uploadFileRecordId)
+
 	// 5. 添加上传任务到队列
-	uploadTask := backgroundWorker.UploadTask{
+	uploadJob := jobs.UploadJob{
 		FileRecordId:  uploadFileRecordId,
 		Hash:          hash,
 		CacheFilePath: tmpFilePath,
@@ -117,8 +122,19 @@ func (s *UploadController) Upload(ctx iris.Context) {
 		MediaInfo:     mediaInfo,
 	}
 
-	uploadTask.Enqueue(backgroundWorker.CDN, time.Now().Unix())
-	uploadTask.Enqueue(backgroundWorker.IPFS, time.Now().Unix())
+	uploadJob.Enqueue(time.Now().Unix())
+
+	// 另开一个线程直接上传到 CDN
+	go func() {
+		uploader := uploaders.CDNUploader{
+			Job: &uploadJob,
+		}
+		if err := uploader.Upload(); err != nil {
+			lg.Error("Uploader to CDN failed, ", uploader.Job.Hash)
+		}
+		// 上传到 CDN 成功后，直接删除临时文件
+		_ = os.Remove(tmpFilePath)
+	}()
 
 	// 回调上传成功状态
 	uploadHelper.PostUpload(ctx, uploadFileRecord)

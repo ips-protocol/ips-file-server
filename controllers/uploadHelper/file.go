@@ -1,20 +1,22 @@
 package uploadHelper
 
 import (
+	"github.com/ipweb-group/file-server/config"
 	"github.com/ipweb-group/file-server/utils"
+	"github.com/ipweb-group/go-sdk/rpc"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 )
 
 func GetFileHash(clientKey string, file io.Reader) (hash string, err error) {
-	rpcClient, _ := utils.GetClientInstance()
-
-	if clientKey != "" {
-		hash, err = rpcClient.GetCidByClientKey(clientKey, file)
-	} else {
-		hash, err = rpcClient.GetCid(file)
+	// 未传入 key 的时候从配置文件中取默认的 key
+	if clientKey == "" {
+		clientKey = config.GetConfig().NodeConf.ContractConf.ClientKeyHex
 	}
+
+	hash, err = rpc.GetCidByClientKey(clientKey, file)
+
 	return
 }
 
