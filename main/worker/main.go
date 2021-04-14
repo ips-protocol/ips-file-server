@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/ipweb-group/file-server/config"
-	"github.com/ipweb-group/file-server/externals/mongodb"
-	"github.com/ipweb-group/file-server/externals/redisdb"
-	"github.com/ipweb-group/file-server/utils"
-	"github.com/ipweb-group/file-server/worker"
+	"github.com/ips/file-server/config"
+	"github.com/ips/file-server/externals/mongodb"
+	"github.com/ips/file-server/externals/redisdb"
+	"github.com/ips/file-server/utils"
+	"github.com/ips/file-server/worker"
 	"github.com/kataras/golog"
 )
 
