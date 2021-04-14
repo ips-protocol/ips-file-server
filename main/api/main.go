@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"github.com/ipweb-group/file-server/config"
-	"github.com/ipweb-group/file-server/controllers"
-	"github.com/ipweb-group/file-server/externals/mongodb"
-	"github.com/ipweb-group/file-server/externals/ossClient"
-	"github.com/ipweb-group/file-server/externals/redisdb"
-	"github.com/ipweb-group/file-server/utils"
+	"github.com/ipsfile-server/config"
+	"github.com/ips/file-server/controllers"
+	"github.com/ips/file-server/externals/mongodb"
+	"github.com/ips/file-server/externals/ossClient"
+	"github.com/ips/file-server/externals/redisdb"
+	"github.com/ips/file-server/utils"
 	"github.com/kataras/iris"
 	irisContext "github.com/kataras/iris/context"
 	"time"
