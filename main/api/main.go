@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/ipsfile-server/config"
+	"github.com/ips/file-server/config"
 	"github.com/ips/file-server/controllers"
 	"github.com/ips/file-server/externals/mongodb"
 	"github.com/ips/file-server/externals/ossClient"
